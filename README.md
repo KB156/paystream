@@ -71,3 +71,12 @@ Here are 3 example transactions showcasing the core lifecycle of the PayStream p
 - **Frontend**: React, Vite, Tailwind CSS, Ethers.js
 - **Auth**: Clerk (Mock/Demo Mode)
 - **Network**: HeLa Testnet (Native HLUSD)
+
+---
+
+## 📚 Resources
+
+- **Contract Code**: [contracts/](contracts/)
+- **Tests**: [test/](test/)
+- **Frontend Code**: [frontend/](frontend/)
+- **Live Demo**: [https://paystream-amo9-5rfexpbbh-krish-bhagat-s-projects.vercel.app/]
