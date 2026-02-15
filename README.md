@@ -77,6 +77,6 @@ Here are 3 example transactions showcasing the core lifecycle of the PayStream p
 ## 📚 Resources
 
 - **Contract Code**: [contracts/](contracts/)
-- **Tests**: [test/](test/)
+- **Tests**: [contracts/test/](contracts/test/)
 - **Frontend Code**: [frontend/](frontend/)
 - **Live Demo**: [https://paystream-amo9-5rfexpbbh-krish-bhagat-s-projects.vercel.app/]

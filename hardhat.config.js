@@ -14,6 +14,9 @@ module.exports = {
     },
     // Force JS/WASM compiler — fixes HH505 on macOS Apple Silicon
     solcjs: true,
+    paths: {
+        tests: "./contracts/test",
+    },
     networks: {
         localhost: {
             url: "http://127.0.0.1:8545",
