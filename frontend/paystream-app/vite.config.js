@@ -11,5 +11,15 @@ export default defineConfig({
     },
     build: {
         target: 'esnext',
+        chunkSizeWarningLimit: 1000, // Increase limit slightly
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    vendor: ['react', 'react-dom', 'react-router-dom'],
+                    ethers: ['ethers'],
+                    clerk: ['@clerk/clerk-react'],
+                },
+            },
+        },
     },
 });
