@@ -31,6 +31,7 @@ contract PayStream is AccessControl, ReentrancyGuard {
         uint256 ratePerSecond;
         uint256 lastClaimTime;
         bool active;
+        bool isPaused;
     }
 
     struct StreamRequest {
@@ -141,7 +142,8 @@ contract PayStream is AccessControl, ReentrancyGuard {
                 employee: employee,
                 ratePerSecond: ratePerSecond,
                 lastClaimTime: block.timestamp,
-                active: true
+                active: true,
+                isPaused: false
             })
         );
 
@@ -154,14 +156,19 @@ contract PayStream is AccessControl, ReentrancyGuard {
      */
     function pauseStream(
         uint256 streamId
-    ) external onlyRole(HR_ROLE) streamExists(streamId) {
+    ) external streamExists(streamId) {
         Stream storage s = streams[streamId];
+        require(
+            hasRole(HR_ROLE, msg.sender) || msg.sender == s.employee,
+            "PayStream: access denied"
+        );
         require(s.active, "PayStream: already paused");
 
         // Auto-claim pending amount before pausing
         _processWithdrawal(streamId);
 
         s.active = false;
+        s.isPaused = true;
         emit StreamPaused(streamId);
     }
 
@@ -173,9 +180,11 @@ contract PayStream is AccessControl, ReentrancyGuard {
     ) external onlyRole(HR_ROLE) streamExists(streamId) {
         Stream storage s = streams[streamId];
         require(!s.active, "PayStream: already active");
+        require(s.isPaused, "PayStream: stream is cancelled, cannot resume");
 
         s.lastClaimTime = block.timestamp;
         s.active = true;
+        s.isPaused = false;
         emit StreamResumed(streamId);
     }
 
@@ -186,12 +195,15 @@ contract PayStream is AccessControl, ReentrancyGuard {
         uint256 streamId
     ) external onlyRole(HR_ROLE) streamExists(streamId) {
         Stream storage s = streams[streamId];
-        require(s.active, "PayStream: already inactive");
+        require(s.active || s.isPaused, "PayStream: already inactive");
 
         // Auto-claim pending amount before cancelling
-        _processWithdrawal(streamId);
+        if (s.active) {
+            _processWithdrawal(streamId);
+        }
 
         s.active = false;
+        s.isPaused = false; // Permanently stopped
         emit StreamCancelled(streamId);
     }
 
@@ -257,7 +269,8 @@ contract PayStream is AccessControl, ReentrancyGuard {
                 employee: req.employee,
                 ratePerSecond: req.ratePerSecond,
                 lastClaimTime: block.timestamp,
-                active: true
+                active: true,
+                isPaused: false
             })
         );
 

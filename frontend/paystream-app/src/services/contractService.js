@@ -2,24 +2,25 @@ import { ethers } from 'ethers';
 import PayStreamABI from '../../../../shared/abi/PayStream.json';
 import TaxVaultABI from '../../../../shared/abi/TaxVault.json';
 
-// Default addresses for local hardhat deployment — overwritten dynamically
-let PAYSTREAM_ADDRESS = '';
-let TAX_VAULT_ADDRESS = '';
+// Addresses will be loaded dynamically based on Chain ID
+let ALL_ADDRESSES = {};
 
 // Try to load addresses from deployment
 try {
-    const addresses = await import('../../../../shared/abi/addresses.json');
-    PAYSTREAM_ADDRESS = addresses.payStream || '';
-    TAX_VAULT_ADDRESS = addresses.taxVault || '';
+    // Note: This relies on the new structure { "666888": {...}, "8668": {...} }
+    const loaded = await import('../../../../shared/abi/addresses.json');
+    // Handle ES module default export if necessary
+    ALL_ADDRESSES = loaded.default || loaded;
+    console.log('Loaded deployment addresses:', ALL_ADDRESSES);
 } catch (e) {
-    console.warn('No deployment addresses found. Please deploy contracts first.');
+    console.warn('No deployment addresses found.');
 }
 
 export function getProvider() {
     if (window.ethereum) {
         return new ethers.BrowserProvider(window.ethereum);
     }
-    // Fallback to HeLa Testnet Public RPC
+    // Default to Testnet as it's safer for dev/demos if no wallet
     return new ethers.JsonRpcProvider('https://testnet-rpc.helachain.com');
 }
 
@@ -28,18 +29,55 @@ export async function getSigner() {
     return provider.getSigner();
 }
 
-export async function switchToHeLaNetwork() {
+/**
+ * Helper to get addresses for the current connected network
+ */
+async function getAddresses() {
+    const provider = getProvider();
+    let chainId;
+    try {
+        const network = await provider.getNetwork();
+        chainId = network.chainId.toString();
+    } catch (e) {
+        console.warn("Could not determine chain ID, defaulting to Testnet (666888)");
+        chainId = "666888";
+    }
+
+    // fallback for old structure compatibility (if user hasn't redeployed yet)
+    // If the JSON is flat (no chainID keys but has "payStream"), wrap it effectively
+    if (ALL_ADDRESSES.payStream && !ALL_ADDRESSES[chainId]) {
+        return ALL_ADDRESSES;
+    }
+
+    const deployment = ALL_ADDRESSES[chainId];
+    if (!deployment) {
+        console.warn(`No deployment found for Chain ID ${chainId}.`);
+        return { payStream: '', taxVault: '' };
+    }
+    return deployment;
+}
+
+export async function switchToHeLaNetwork(isTestnet = true) {
     if (typeof window.ethereum === 'undefined') {
         throw new Error('MetaMask is not installed');
     }
 
-    const chainId = '0xA2D08'; // 666888 in hex (HeLa Testnet)
+    const config = isTestnet ? {
+        chainId: '0xA2D08', // 666888
+        chainName: 'HeLa Testnet',
+        rpcUrl: 'https://testnet-rpc.helachain.com',
+        blockExplorer: 'https://testnet-blockexplorer.helachain.com'
+    } : {
+        chainId: '0x21DC', // 8668
+        chainName: 'HeLa Mainnet',
+        rpcUrl: 'https://mainnet-rpc.helachain.com',
+        blockExplorer: 'https://mainnet-blockexplorer.helachain.com'
+    };
 
     try {
-        // Try to switch to the network
         await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId }],
+            params: [{ chainId: config.chainId }],
         });
     } catch (switchError) {
         // If the network doesn't exist, add it
@@ -48,20 +86,20 @@ export async function switchToHeLaNetwork() {
                 await window.ethereum.request({
                     method: 'wallet_addEthereumChain',
                     params: [{
-                        chainId,
-                        chainName: 'HeLa Testnet',
+                        chainId: config.chainId,
+                        chainName: config.chainName,
                         nativeCurrency: {
                             name: 'HLUSD',
                             symbol: 'HLUSD',
                             decimals: 18
                         },
-                        rpcUrls: ['https://testnet-rpc.helachain.com'],
-                        blockExplorerUrls: ['https://testnet-blockexplorer.helachain.com']
+                        rpcUrls: [config.rpcUrl],
+                        blockExplorerUrls: [config.blockExplorer]
                     }],
                 });
             } catch (addError) {
                 console.error('Add chain error:', addError);
-                throw new Error('Failed to add HeLa Testnet to MetaMask');
+                throw new Error(`Failed to add ${config.chainName} to MetaMask`);
             }
         } else {
             throw switchError;
@@ -73,32 +111,32 @@ export async function connectWallet() {
     console.log('Attempting to connect wallet...');
 
     if (typeof window.ethereum === 'undefined') {
-        console.error('MetaMask not detected!');
-        throw new Error('MetaMask is not installed. Please install the browser extension from metamask.io');
+        throw new Error('MetaMask is not installed.');
     }
 
-    // First, try to switch to HeLa network
-    try {
-        await switchToHeLaNetwork();
-        console.log('✅ Switched to HeLa Testnet');
-    } catch (err) {
-        console.warn('Could not switch network:', err);
-        throw new Error('Please manually switch MetaMask to HeLa Testnet (Chain ID: 666888)');
-    }
-
+    // Request accounts
     const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts',
     });
-    console.log('Connected account:', accounts[0]);
+
+    // Check network and log
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const network = await provider.getNetwork();
+    console.log(`Connected to chain: ${network.chainId}`);
+
     return accounts[0];
 }
 
 export async function getPayStreamContract(signerOrProvider) {
-    return new ethers.Contract(PAYSTREAM_ADDRESS, PayStreamABI.abi, signerOrProvider);
+    const addresses = await getAddresses();
+    if (!addresses.payStream) throw new Error("PayStream address not found for this network");
+    return new ethers.Contract(addresses.payStream, PayStreamABI.abi, signerOrProvider);
 }
 
 export async function getTaxVaultContract(signerOrProvider) {
-    return new ethers.Contract(TAX_VAULT_ADDRESS, TaxVaultABI.abi, signerOrProvider);
+    const addresses = await getAddresses();
+    if (!addresses.taxVault) throw new Error("TaxVault address not found for this network");
+    return new ethers.Contract(addresses.taxVault, TaxVaultABI.abi, signerOrProvider);
 }
 
 // ── Write Functions ──
@@ -142,13 +180,10 @@ export async function fundContract(amount) {
     const amountWei = ethers.parseEther(amount.toString());
 
     // 1. Check Native Balance
-    // We use signer.provider (or getProvider) to check native balance
-    const provider = signer.provider || getProvider();
-    // Wait, signer.provider is reliably available if connected
-
-    // Explicitly get address to check balance
     const userAddress = await signer.getAddress();
+    const provider = signer.provider;
     const balance = await provider.getBalance(userAddress);
+
     console.log(`Current Native Balance: ${ethers.formatEther(balance)} HLUSD`);
 
     if (balance < amountWei) {
@@ -158,8 +193,6 @@ export async function fundContract(amount) {
 
     // 2. Fund Contract (Native Transfer)
     console.log(`Funding contract with ${amount} HLUSD...`);
-
-    // In Native Mode, fundContract is payable. We send value directly.
     const fundTx = await contract.fundContract({ value: amountWei, gasLimit: 500000 });
     await fundTx.wait();
     return fundTx;
@@ -225,6 +258,7 @@ export async function getAllStreams() {
             ratePerSecond: s.ratePerSecond,
             lastClaimTime: Number(s.lastClaimTime),
             active: s.active,
+            isPaused: s.isPaused, // New field
         });
     }
     return streams;
@@ -249,6 +283,7 @@ export async function getEmployeeStreams(employeeAddress) {
                 ratePerSecond: s.ratePerSecond,
                 lastClaimTime: Number(s.lastClaimTime),
                 active: s.active,
+                isPaused: s.isPaused, // New field
             });
         }
     }
@@ -258,7 +293,7 @@ export async function getEmployeeStreams(employeeAddress) {
 export async function withdraw(streamId) {
     const signer = await getSigner();
     const contract = await getPayStreamContract(signer);
-    // Explicit gas limit to prevent RPC estimation errors on HeLa
+    // Explicit gas limit for safety
     const tx = await contract.withdraw(streamId, { gasLimit: 500000 });
     await tx.wait();
     return tx;
@@ -278,7 +313,7 @@ export async function getMyPendingRequests(employeeAddress) {
     const contract = await getPayStreamContract(provider);
     const { requestIds, requests } = await contract.getPendingRequests();
 
-    // Filter for this employee's requests
+    // Filter
     const myRequests = [];
     for (let i = 0; i < requests.length; i++) {
         if (requests[i].employee.toLowerCase() === employeeAddress.toLowerCase()) {
@@ -294,10 +329,6 @@ export async function getMyPendingRequests(employeeAddress) {
     return myRequests;
 }
 
-/**
- * @notice Returns the Native HLUSD balance of the address.
- * Replaces old ERC20 logic.
- */
 export async function getTokenBalance(address) {
     const provider = getProvider();
     const balance = await provider.getBalance(address);
@@ -307,7 +338,6 @@ export async function getTokenBalance(address) {
 export async function getTreasuryBalance() {
     const provider = getProvider();
     const contract = await getPayStreamContract(provider);
-    // Returns address(this).balance
     const balance = await contract.getTreasuryBalance();
     return ethers.formatEther(balance);
 }

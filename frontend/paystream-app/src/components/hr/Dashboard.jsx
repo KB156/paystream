@@ -109,11 +109,11 @@ export default function Dashboard() {
                     </div>
                 </header>
                 <div className="not-connected">
-                    <div className="not-connected-icon">🔐</div>
+                    <div className="not-connected-icon">Locked</div>
                     <h2>Connect Your Wallet</h2>
                     <p>Connect MetaMask to manage payroll streams and fund the treasury.</p>
                     <button className="btn btn-primary" onClick={handleConnect}>
-                        🦊 Connect MetaMask
+                        Connect MetaMask
                     </button>
                 </div>
             </div>
@@ -171,7 +171,6 @@ export default function Dashboard() {
                     <div className="glass-card">
                         <div className="card-header">
                             <h2 className="card-title">
-                                <span className="card-title-icon">💰</span>
                                 Fund Treasury
                             </h2>
                         </div>
@@ -201,7 +200,7 @@ export default function Dashboard() {
                                     Funding…
                                 </>
                             ) : (
-                                '📥 Deposit Tokens'
+                                'Deposit Tokens'
                             )}
                         </button>
                     </div>

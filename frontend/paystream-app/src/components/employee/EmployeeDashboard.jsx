@@ -9,6 +9,7 @@ import {
     ethers,
     requestStreamStart,
     getMyPendingRequests,
+    pauseStream,
 } from '../../services/contractService';
 import EarningsDisplay from './EarningsDisplay';
 
@@ -37,10 +38,12 @@ export default function EmployeeDashboard() {
             setBalance(tokenBalance);
             setPendingRequests(myRequests);
 
-            // Sort streams: Active first, then by ID desc
+            // Sort streams: Active/Paused first, then by ID desc
             const sortedStreams = [...myStreams].sort((a, b) => {
-                if (a.active === b.active) return b.id - a.id;
-                return b.active ? 1 : -1;
+                const aAlive = a.active || a.isPaused;
+                const bAlive = b.active || b.isPaused;
+                if (aAlive === bAlive) return b.id - a.id;
+                return bAlive ? 1 : -1;
             });
             setStreams(sortedStreams);
 
@@ -89,6 +92,21 @@ export default function EmployeeDashboard() {
         }
     };
 
+    const handlePause = async (streamId) => {
+        if (!confirm("Pause this stream? You will stop receiving funds until HR resumes it.")) return;
+        setWithdrawLoading((p) => ({ ...p, [streamId]: true })); // reuse loading state
+        try {
+            await pauseStream(streamId);
+            if (account) await loadData(account);
+            alert("Stream Paused for security.");
+        } catch (err) {
+            console.error('Pause failed:', err);
+            alert(err.reason || err.message || 'Pause failed');
+        } finally {
+            setWithdrawLoading((p) => ({ ...p, [streamId]: false }));
+        }
+    };
+
     const handleRequestStream = async () => {
         if (!requestRate || Number(requestRate) <= 0) {
             alert('Please enter a valid rate');
@@ -123,11 +141,11 @@ export default function EmployeeDashboard() {
                     </div>
                 </header>
                 <div className="not-connected">
-                    <div className="not-connected-icon">👛</div>
+                    <div className="not-connected-icon">Locked</div>
                     <h2>Connect Your Wallet</h2>
                     <p>Connect MetaMask to view your salary streams and withdraw earnings.</p>
                     <button className="btn-connect" onClick={handleConnect}>
-                        🦊 Connect MetaMask
+                        Connect MetaMask
                     </button>
                 </div>
             </div>
@@ -166,7 +184,6 @@ export default function EmployeeDashboard() {
             <div className="glass-card" style={{ marginBottom: '2rem' }}>
                 <div className="card-header">
                     <h2 className="card-title">
-                        <span className="card-title-icon">📋</span>
                         My Salary Streams
                     </h2>
                 </div>
@@ -178,7 +195,7 @@ export default function EmployeeDashboard() {
                     </div>
                 ) : streams.length === 0 ? (
                     <div className="empty-state">
-                        <div className="empty-state-icon">🔍</div>
+                        <div className="empty-state-icon">Streams</div>
                         <p className="empty-state-text">No streams found</p>
                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
                             Ask your employer to create a salary stream for your address.
@@ -193,8 +210,8 @@ export default function EmployeeDashboard() {
                                 onClick={() => stream.active && setSelectedStream(stream)}
                                 style={{
                                     padding: '1.25rem',
-                                    background: stream.active ? 'rgba(99, 102, 241, 0.05)' : 'transparent',
-                                    border: stream.active ? '1px solid var(--border)' : '1px solid transparent', // Changed to var(--border) for better visibility
+                                    background: (stream.active || stream.isPaused) ? 'rgba(99, 102, 241, 0.05)' : 'transparent',
+                                    border: (stream.active || stream.isPaused) ? '1px solid var(--border)' : '1px solid transparent', // Changed to var(--border) for better visibility
                                     borderRadius: 'var(--radius-lg)',
                                     cursor: stream.active ? 'pointer' : 'default',
                                     transition: 'all 0.2s ease',
@@ -205,8 +222,10 @@ export default function EmployeeDashboard() {
                                     <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>Stream #{stream.id}</span>
                                     {stream.active ? (
                                         <span className="badge badge-active">Active</span>
+                                    ) : stream.isPaused ? (
+                                        <span className="badge" style={{ background: 'var(--warning)', color: '#1a1a2e' }}>Paused</span>
                                     ) : (
-                                        <span className="badge badge-cancelled">Inactive</span>
+                                        <span className="badge badge-cancelled">Ended</span>
                                     )}
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
@@ -221,7 +240,7 @@ export default function EmployeeDashboard() {
                                 </div>
                                 {stream.active && (
                                     <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>
-                                        Click to view earnings ⚡️
+                                        Click to view earnings
                                     </div>
                                 )}
                             </div>
@@ -236,6 +255,7 @@ export default function EmployeeDashboard() {
                     <EarningsDisplay
                         stream={selectedStream}
                         onWithdraw={() => handleWithdraw(selectedStream.id)}
+                        onPause={() => handlePause(selectedStream.id)}
                         loading={withdrawLoading[selectedStream.id]}
                     />
                 </div>
@@ -247,7 +267,6 @@ export default function EmployeeDashboard() {
                 <div className="glass-card">
                     <div className="card-header">
                         <h2 className="card-title">
-                            <span className="card-title-icon">🚀</span>
                             Request New Stream
                         </h2>
                     </div>
@@ -261,7 +280,7 @@ export default function EmployeeDashboard() {
                                 style={{ width: '100%' }}
                                 onClick={() => setShowRequestForm(true)}
                             >
-                                ➕ Request Stream Start
+                                Request Stream Start
                             </button>
                         </div>
                     ) : (
@@ -292,7 +311,7 @@ export default function EmployeeDashboard() {
                                     onClick={handleRequestStream}
                                     disabled={requestLoading || !requestRate}
                                 >
-                                    {requestLoading ? <span className="spinner"></span> : '✅ Submit'}
+                                    {requestLoading ? <span className="spinner"></span> : 'Submit'}
                                 </button>
                                 <button
                                     className="btn btn-ghost"
@@ -314,13 +333,12 @@ export default function EmployeeDashboard() {
                 <div className="glass-card">
                     <div className="card-header">
                         <h2 className="card-title">
-                            <span className="card-title-icon">⏳</span>
                             Pending Requests
                         </h2>
                     </div>
                     {pendingRequests.length === 0 ? (
                         <div className="empty-state">
-                            <div className="empty-state-icon">✅</div>
+                            <div className="empty-state-icon">Done</div>
                             <p className="empty-state-text">No pending requests</p>
                         </div>
                     ) : (

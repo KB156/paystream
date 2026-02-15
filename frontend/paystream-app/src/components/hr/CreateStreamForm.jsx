@@ -44,7 +44,6 @@ export default function CreateStreamForm({ onStreamCreated }) {
         <div className="glass-card">
             <div className="card-header">
                 <h2 className="card-title">
-                    <span className="card-title-icon">➕</span>
                     Create Stream
                 </h2>
             </div>
@@ -84,7 +83,7 @@ export default function CreateStreamForm({ onStreamCreated }) {
                 </div>
                 {error && (
                     <p style={{ color: '#f87171', fontSize: '0.8rem', marginBottom: '0.75rem' }}>
-                        ⚠ {error}
+                        Error: {error}
                     </p>
                 )}
                 <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
@@ -94,7 +93,7 @@ export default function CreateStreamForm({ onStreamCreated }) {
                             Creating…
                         </>
                     ) : (
-                        '🚀 Create Stream'
+                        'Create Stream'
                     )}
                 </button>
             </form>

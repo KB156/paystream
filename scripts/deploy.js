@@ -62,7 +62,24 @@ async function main() {
     }
 
     // ── 5. Write deployment addresses ──
-    const addresses = {
+    const addressesPath = path.join(abiDir, "addresses.json");
+    let existingAddresses = {};
+
+    // Read existing file if it exists
+    if (fs.existsSync(addressesPath)) {
+        try {
+            existingAddresses = JSON.parse(fs.readFileSync(addressesPath, "utf8"));
+        } catch (e) {
+            console.warn("Could not parse existing addresses.json, starting fresh.");
+        }
+    }
+
+    // Get Chain ID
+    const network = await hre.ethers.provider.getNetwork();
+    const chainId = network.chainId.toString();
+
+    // Prepare new data
+    const newDeployment = {
         token: "", // Native Mode
         taxVault: taxVaultAddress,
         payStream: payStreamAddress,
@@ -70,9 +87,12 @@ async function main() {
         deployer: deployer.address,
         timestamp: new Date().toISOString(),
     };
-    const addressesPath = path.join(abiDir, "addresses.json");
-    fs.writeFileSync(addressesPath, JSON.stringify(addresses, null, 2));
-    console.log("Deployment addresses saved to:", addressesPath);
+
+    // Update specific chain ID
+    existingAddresses[chainId] = newDeployment;
+
+    fs.writeFileSync(addressesPath, JSON.stringify(existingAddresses, null, 2));
+    console.log(`Deployment addresses for Chain ID ${chainId} saved to:`, addressesPath);
 
     console.log("\n✅ Deployment complete! (Native Currency Mode)\n");
     console.log("Contract Addresses:");

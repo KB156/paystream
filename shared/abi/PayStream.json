@@ -619,6 +619,11 @@
               "internalType": "bool",
               "name": "active",
               "type": "bool"
+            },
+            {
+              "internalType": "bool",
+              "name": "isPaused",
+              "type": "bool"
             }
           ],
           "internalType": "struct PayStream.Stream",
@@ -871,6 +876,11 @@
         {
           "internalType": "bool",
           "name": "active",
+          "type": "bool"
+        },
+        {
+          "internalType": "bool",
+          "name": "isPaused",
           "type": "bool"
         }
       ],

@@ -15,8 +15,9 @@ export default function StreamTable({ streams = [], onRefresh }) {
     const [actionLoading, setActionLoading] = useState({});
 
     // Separate active and inactive streams
-    const activeStreams = streams.filter(s => s.active);
-    const inactiveStreams = streams.filter(s => !s.active);
+    // Separate active/paused and inactive streams
+    const activeStreams = streams.filter(s => s.active || s.isPaused);
+    const inactiveStreams = streams.filter(s => !s.active && !s.isPaused);
 
     // Update accrued values every 2 seconds
     useEffect(() => {
@@ -49,10 +50,10 @@ export default function StreamTable({ streams = [], onRefresh }) {
         try {
             await actionFn(id);
             if (onRefresh) await onRefresh();
-            alert(`✅ Stream ${actionName} successful!`);
+            alert(`Stream ${actionName} successful!`);
         } catch (err) {
             console.error(`${actionName} failed:`, err);
-            alert(`❌ Failed to ${actionName} stream:\n${err.reason || err.message || 'Unknown error'}`);
+            alert(`Failed to ${actionName} stream:\n${err.reason || err.message || 'Unknown error'}`);
         } finally {
             setActionLoading((prev) => ({ ...prev, [id]: null }));
         }
@@ -90,6 +91,8 @@ export default function StreamTable({ streams = [], onRefresh }) {
                             <td>
                                 {stream.active ? (
                                     <span className="badge badge-active">Active</span>
+                                ) : stream.isPaused ? (
+                                    <span className="badge" style={{ background: 'var(--warning)', color: '#1a1a2e' }}>Paused</span>
                                 ) : (
                                     <span className="badge badge-cancelled">Ended</span>
                                 )}
@@ -99,6 +102,25 @@ export default function StreamTable({ streams = [], onRefresh }) {
                                     {stream.active ? (
                                         <>
                                             <button
+                                                className="btn btn-sm"
+                                                style={{ background: 'var(--success)', color: 'white', border: 'none', marginRight: '0.5rem' }}
+                                                onClick={() => {
+                                                    const amt = prompt(`Award Bonus to ${formatAddress(stream.employee)} (HLUSD):`);
+                                                    if (amt) handleAction(stream.id, 'bonus', () => import('../../services/contractService').then(m => m.awardBonus(stream.employee, amt)));
+                                                }}
+                                                disabled={!!actionLoading[stream.id]}
+                                            >
+                                                {actionLoading[stream.id] === 'bonus' ? <span className="spinner"></span> : 'Bonus'}
+                                            </button>
+                                            <button
+                                                className="btn btn-sm"
+                                                style={{ background: 'var(--warning)', color: '#1a1a2e', border: 'none', marginRight: '0.5rem' }}
+                                                onClick={() => handleAction(stream.id, 'pause', pauseStream)}
+                                                disabled={!!actionLoading[stream.id]}
+                                            >
+                                                {actionLoading[stream.id] === 'pause' ? <span className="spinner"></span> : 'Pause'}
+                                            </button>
+                                            <button
                                                 className="btn btn-danger btn-sm"
                                                 onClick={() => {
                                                     if (confirm('End this stream? It will move to history.'))
@@ -106,11 +128,32 @@ export default function StreamTable({ streams = [], onRefresh }) {
                                                 }}
                                                 disabled={!!actionLoading[stream.id]}
                                             >
-                                                {actionLoading[stream.id] === 'cancel' ? <span className="spinner"></span> : '⏹ End'}
+                                                {actionLoading[stream.id] === 'cancel' ? <span className="spinner"></span> : 'End'}
+                                            </button>
+                                        </>
+                                    ) : stream.isPaused ? (
+                                        <>
+                                            <button
+                                                className="btn btn-success btn-sm"
+                                                style={{ marginRight: '0.5rem' }}
+                                                onClick={() => handleAction(stream.id, 'resume', resumeStream)}
+                                                disabled={!!actionLoading[stream.id]}
+                                            >
+                                                {actionLoading[stream.id] === 'resume' ? <span className="spinner"></span> : 'Resume'}
+                                            </button>
+                                            <button
+                                                className="btn btn-danger btn-sm"
+                                                onClick={() => {
+                                                    if (confirm('End this stream permanently?'))
+                                                        handleAction(stream.id, 'cancel', cancelStream);
+                                                }}
+                                                disabled={!!actionLoading[stream.id]}
+                                            >
+                                                {actionLoading[stream.id] === 'cancel' ? <span className="spinner"></span> : 'End'}
                                             </button>
                                         </>
                                     ) : (
-                                        // History actions (maybe nothing, or View Details)
+                                        // History actions
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>-</span>
                                     )}
                                 </div>
@@ -128,17 +171,16 @@ export default function StreamTable({ streams = [], onRefresh }) {
             <div className="glass-card">
                 <div className="card-header">
                     <h2 className="card-title">
-                        <span className="card-title-icon">📊</span>
                         Active Streams ({activeStreams.length})
                     </h2>
                     <button className="btn btn-ghost btn-sm" onClick={onRefresh}>
-                        🔄 Refresh
+                        Refresh
                     </button>
                 </div>
 
                 {activeStreams.length === 0 ? (
                     <div className="empty-state">
-                        <div className="empty-state-icon">💸</div>
+                        <div className="empty-state-icon">Stream</div>
                         <p className="empty-state-text">No active streams</p>
                         <p className="empty-state-sub">Create a new stream to get started.</p>
                     </div>
@@ -150,7 +192,6 @@ export default function StreamTable({ streams = [], onRefresh }) {
                 <div className="glass-card" style={{ border: '1px solid rgba(255,255,255,0.05)', background: 'var(--bg-secondary)' }}>
                     <div className="card-header">
                         <h2 className="card-title" style={{ color: 'var(--text-muted)' }}>
-                            <span className="card-title-icon">📜</span>
                             Stream History
                         </h2>
                     </div>

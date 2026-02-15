@@ -69,7 +69,6 @@ export default function PendingRequests({ refreshTrigger, onRequestProcessed }) 
             <div className="glass-card">
                 <div className="card-header">
                     <h2 className="card-title">
-                        <span className="card-title-icon">⏳</span>
                         Pending Stream Requests
                     </h2>
                 </div>
@@ -86,12 +85,11 @@ export default function PendingRequests({ refreshTrigger, onRequestProcessed }) 
             <div className="glass-card">
                 <div className="card-header">
                     <h2 className="card-title">
-                        <span className="card-title-icon">⏳</span>
                         Pending Stream Requests
                     </h2>
                 </div>
                 <div className="empty-state">
-                    <div className="empty-state-icon">✅</div>
+                    <div className="empty-state-icon">Done</div>
                     <p className="empty-state-text">No pending requests</p>
                 </div>
             </div>
@@ -102,7 +100,6 @@ export default function PendingRequests({ refreshTrigger, onRequestProcessed }) 
         <div className="glass-card">
             <div className="card-header">
                 <h2 className="card-title">
-                    <span className="card-title-icon">⏳</span>
                     Pending Stream Requests ({requests.length})
                 </h2>
             </div>
@@ -146,7 +143,7 @@ export default function PendingRequests({ refreshTrigger, onRequestProcessed }) 
                                         Approving…
                                     </>
                                 ) : (
-                                    '✅ Approve'
+                                    'Approve'
                                 )}
                             </button>
                             <button
@@ -161,7 +158,7 @@ export default function PendingRequests({ refreshTrigger, onRequestProcessed }) 
                                         Rejecting…
                                     </>
                                 ) : (
-                                    '❌ Reject'
+                                    'Reject'
                                 )}
                             </button>
                         </div>

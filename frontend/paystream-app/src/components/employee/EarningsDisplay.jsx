@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { calculateAccrued, ethers } from '../../services/contractService';
 
-export default function EarningsDisplay({ stream, onWithdraw, loading }) {
+export default function EarningsDisplay({ stream, onWithdraw, onPause, loading }) {
     const [earned, setEarned] = useState('0.0000');
     const intervalRef = useRef(null);
 
@@ -40,7 +40,7 @@ export default function EarningsDisplay({ stream, onWithdraw, loading }) {
         <div className="glass-card earnings-card" style={{ background: 'var(--surface-card)', border: '1px solid var(--glass-border)' }}>
             <div className="card-header" style={{ marginBottom: '1.5rem', justifyContent: 'center' }}>
                 <h2 className="card-title text-center">
-                    {stream.active ? '⚡️ Real-time Earnings' : '⏸ Stream Paused'}
+                    {stream.active ? 'Real-time Earnings' : 'Stream Paused'}
                 </h2>
             </div>
 
@@ -101,7 +101,7 @@ export default function EarningsDisplay({ stream, onWithdraw, loading }) {
                         </>
                     ) : (
                         <>
-                            💸 Withdraw to Wallet
+                            Withdraw to Wallet
                         </>
                     )}
                 </button>
@@ -111,11 +111,22 @@ export default function EarningsDisplay({ stream, onWithdraw, loading }) {
                     style={{ width: '100%', background: '#10b981', color: 'white', border: 'none', padding: '1rem', fontSize: '1.1rem' }}
                     onClick={() => {
                         const amt = prompt("Amount to Cash Out (USD):");
-                        if (amt) alert(`✅ Success! $${amt} sent to Bank Account ****1234\n(Mock Ramp Integration)`);
+                        if (amt) alert(`Success! $${amt} sent to Bank Account ****1234\n(Mock Ramp Integration)`);
                     }}
                 >
-                    🏦 Cash Out to Bank
+                    Cash Out to Bank
                 </button>
+
+                {stream.active && (
+                    <button
+                        className="btn"
+                        style={{ width: '100%', background: 'transparent', border: '1px solid var(--warning)', color: 'var(--warning)', padding: '0.75rem' }}
+                        onClick={onPause}
+                        disabled={loading}
+                    >
+                        Pause Stream (Emergency)
+                    </button>
+                )}
             </div>
         </div>
     );

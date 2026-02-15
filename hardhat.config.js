@@ -23,5 +23,10 @@ module.exports = {
             chainId: 666888,
             accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
         },
+        hela_mainnet: {
+            url: "https://mainnet-rpc.helachain.com",
+            chainId: 8668,
+            accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+        },
     },
 };

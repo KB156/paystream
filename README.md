@@ -1,123 +1,73 @@
-# PayStream — Decentralized Payroll Streaming
+# 🌊 PayStream: Decentralized Payroll Streaming
 
-> Stream ERC-20 salaries per-second. Employees withdraw anytime. Automatic tax deductions.
+**PayStream** is a decentralized payroll application built on the **HeLa Testnet** that enables employers to stream salaries to employees in real-time. Instead of monthly paychecks, employees earn their salary second-by-second and can withdraw their earnings instantly. The system features a dual-dashboard interface (HR Admin & Employee Portal), automatic tax deduction routing, and support for bonuses, all powered by native HLUSD.
 
-## Overview
-
-PayStream enables employers to create per-second salary streams for employees. A configurable tax percentage (default 10%) is automatically deducted to a vault on every withdrawal. Built on Solidity ^0.8.20 with OpenZeppelin contracts.
-
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
+- Node.js (v18+)
+- MetaMask Wallet (configured for HeLa Testnet)
+- Native HLUSD (for gas and funding)
 
-- Node.js ≥ 18
-- npm ≥ 9
-- MetaMask browser extension (for frontend)
-
-### 1. Install & Compile
-
+### 1. Clone & Install
 ```bash
+git clone https://github.com/KB156/paystream.git
 cd paystream
 npm install
-npx hardhat compile
 ```
 
-### 2. Run Tests
-
-```bash
-npx hardhat test
+### 2. Configure Environment
+Create a `.env` file in the root directory (see `.env.example`):
+```env
+PRIVATE_KEY=your_wallet_private_key
+HELA_RPC_URL=https://testnet-rpc.helachain.com
 ```
 
-### 3. Local Deployment
-
-```bash
-# Terminal 1: Start local node
-npx hardhat node
-
-# Terminal 2: Deploy contracts
-npx hardhat run scripts/deploy.js --network localhost
-```
-
-Deployed addresses and ABIs will be saved to `shared/abi/`.
-
-### 4. Start HR Dashboard
-
-```bash
-cd frontend/hr-dashboard
-npm install
-npm run dev
-# → http://localhost:3000
-```
-
-### 5. Start Employee Portal
-
-```bash
-cd frontend/employee-portal
-npm install
-npm run dev
-# → http://localhost:3001
-```
-
-## Environment Variables
-
-Copy `.env.example` to `.env` for HeLa testnet deployment:
-
-| Variable | Description |
-|----------|-------------|
-| `PRIVATE_KEY` | Deployer private key (without 0x) |
-| `HELA_RPC_URL` | HeLa testnet RPC endpoint |
-
-## Project Structure
-
-```
-paystream/
-├── contracts/
-│   ├── PayStream.sol          # Main streaming contract
-│   ├── TaxVault.sol           # Tax collection vault
-│   ├── MockToken.sol          # Test ERC-20 token
-│   ├── interfaces/
-│   │   └── IPayStream.sol     # Contract interface
-│   └── libraries/
-│       └── StreamMath.sol     # Math library
-├── scripts/
-│   └── deploy.js              # Deployment + ABI export
-├── test/
-│   └── PayStream.test.js      # Comprehensive test suite
-├── frontend/
-│   ├── hr-dashboard/          # Vite+React HR management app
-│   └── employee-portal/       # Vite+React employee app
-├── shared/
-│   └── abi/                   # Exported ABIs + addresses
-├── docs/
-│   └── architecture.md        # System architecture docs
-├── hardhat.config.js
-└── package.json
-```
-
-## Smart Contract Functions
-
-### PayStream (HR)
-- `createStream(employee, ratePerSecond)` — Create salary stream
-- `pauseStream(streamId)` — Pause (auto-claims pending)
-- `resumeStream(streamId)` — Resume paused stream
-- `cancelStream(streamId)` — Cancel (auto-claims remaining)
-- `fundContract(amount)` — Deposit tokens to treasury
-- `setTaxRate(basisPoints)` — Admin: update tax rate
-
-### PayStream (Employee)
-- `withdraw(streamId)` — Withdraw accrued salary
-- `calculateAccrued(streamId)` — View pending earnings
-
-### TaxVault (Admin)
-- `withdraw(to, amount)` — Admin withdraws collected tax
-- `getBalance()` — View vault balance
-
-## Deploy to HeLa Testnet
-
+### 3. Deploy Contracts (Optional)
+If you want to deploy your own instances:
 ```bash
 npx hardhat run scripts/deploy.js --network hela
 ```
 
-## License
+### 4. Run Frontend
+```bash
+cd frontend/paystream-app
+npm install
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173) to view the app.
 
-MIT
+---
+
+## 🔗 Deployment Details (HeLa Testnet)
+
+**Date**: Feb 15, 2026  
+**Chain ID**: `666888` (0xA2D08)
+
+| Contract | Address |
+|----------|---------|
+| **PayStream** | \`0xc582Bc0317dbb0908203541971a358c44b1F3766\` |
+| **TaxVault** | \`0xe1Fd27F4390DcBE165f4D60DBF821e4B9Bb02dEd\` |
+
+---
+
+## 📜 Example Transactions
+
+Here are 3 example transactions showcasing the core lifecycle of the PayStream protocol on HeLa Testnet:
+
+1.  **Fund Treasury** (Employer depositing Native HLUSD)  
+    [0x304302f35055e42cd8525fe5d2ce8d88481edf8323ccc6253273086a952f58ee](https://testnet-blockexplorer.helachain.com/tx/0x304302f35055e42cd8525fe5d2ce8d88481edf8323ccc6253273086a952f58ee)
+
+2.  **Create Stream** (Employer starting a salary stream)  
+    [0xa6beec83a9266ac6d75de47eb8d6a54ead949b6e546a619722dab4dd4e82d46b](https://testnet-blockexplorer.helachain.com/tx/0xa6beec83a9266ac6d75de47eb8d6a54ead949b6e546a619722dab4dd4e82d46b)
+
+3.  **Withdraw** (Employee claiming accrued earnings)  
+    [0x97a390d24068f66eb406ab9ab5eb733e4f9a092c7f6e41240c691728aa98ae4b](https://testnet-blockexplorer.helachain.com/tx/0x97a390d24068f66eb406ab9ab5eb733e4f9a092c7f6e41240c691728aa98ae4b)
+
+---
+
+## 🛠 Tech Stack
+- **Smart Contracts**: Solidity, Hardhat
+- **Frontend**: React, Vite, Tailwind CSS, Ethers.js
+- **Auth**: Clerk (Mock/Demo Mode)
+- **Network**: HeLa Testnet (Native HLUSD)
